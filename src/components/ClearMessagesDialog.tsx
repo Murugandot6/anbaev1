@@ -243,7 +243,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
   };
 
   return (
-    <div className="clear-messages-dialog-container"> {/* Changed from <> to <div> */}
+    <React.Fragment>
       {/* Button to trigger sending a clear request */}
       <AlertDialog open={isSendRequestOpen} onOpenChange={setIsSendRequestOpen}>
         <AlertDialogTrigger asChild>
@@ -341,7 +341,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
           </AlertDialogContent>
         </AlertDialog>
       )}
-    </div>
+    </React.Fragment>
   );
 };
 
