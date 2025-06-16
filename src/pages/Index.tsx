@@ -55,7 +55,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900 text-foreground p-4">
       <div className="text-center mb-8 animate-fade-in">
         <h1 className="text-5xl md:text-7xl font-extrabold mb-4 leading-none">
-          <span className="text-blue-600">A</span>
+          <span className="text-blue-600">a</span>
           <span className="text-red-600">n</span>
           <span className="text-yellow-600">b</span>
           <span className="text-blue-600">a</span>
