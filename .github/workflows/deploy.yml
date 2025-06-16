@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    permissions:
+      contents: write # Grant write permission to the GITHUB_TOKEN for pushing to gh-pages
 
     steps:
       - name: Checkout 
