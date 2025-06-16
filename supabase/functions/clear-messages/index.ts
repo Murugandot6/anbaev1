@@ -14,6 +14,7 @@ serve(async (req) => {
   try {
     const { clearRequestId, userId, partnerId } = await req.json();
     console.log('Edge Function received payload:', { clearRequestId, userId, partnerId });
+    console.log(`Is userId === partnerId? ${userId === partnerId}`); // New log
 
     // Validate input
     if (!clearRequestId || !userId || !partnerId) {
