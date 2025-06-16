@@ -7,7 +7,10 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Edge Function started processing request.'); // Very early log
+
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request.');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -35,7 +38,6 @@ serve(async (req) => {
       });
     }
 
-    // Create a Supabase client with the service role key for elevated privileges
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
     console.log('Supabase admin client created.');
 
@@ -50,7 +52,7 @@ serve(async (req) => {
       console.error('Error fetching clear request:', fetchError.message, fetchError);
       return new Response(JSON.stringify({ success: false, message: `Error fetching clear request: ${fetchError.message}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500, // Changed to 500 for database errors
+        status: 500,
       });
     }
     if (!clearRequest) {
