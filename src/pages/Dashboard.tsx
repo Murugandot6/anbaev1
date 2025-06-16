@@ -140,7 +140,7 @@ const Dashboard = () => {
               <MessageSquare className="w-6 h-6 mr-3" /> Send New Message
             </Button>
           </Link>
-          <Link to="/messages" className="w-full"> {/* Changed to Link to /messages */}
+          <Link to="/messages" className="w-full">
             <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 py-6 text-lg">
               <Inbox className="w-6 h-6 mr-3" /> View Inbox & Outbox
             </Button>
@@ -158,8 +158,13 @@ const Dashboard = () => {
                 <p>Loading sent messages...</p>
               ) : sentMessages.length > 0 ? (
                 <ul className="space-y-2">
-                  {sentMessages.map((message) => (
-                    <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-2 last:border-b-0">
+                  {sentMessages.map((message, index) => (
+                    <li 
+                      key={message.id} 
+                      className={`border-b border-gray-200 dark:border-gray-700 pb-2 last:border-b-0 ${
+                        index === 0 ? 'bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700 p-2 rounded-md' : ''
+                      }`}
+                    >
                       <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Sent: {new Date(message.created_at).toLocaleString()}</p>
                     </li>
@@ -179,8 +184,13 @@ const Dashboard = () => {
                 <p>Loading received messages...</p>
               ) : receivedMessages.length > 0 ? (
                 <ul className="space-y-2">
-                  {receivedMessages.map((message) => (
-                    <li key={message.id} className="border-b border-gray-20:0 dark:border-gray-700 pb-2 last:border-b-0">
+                  {receivedMessages.map((message, index) => (
+                    <li 
+                      key={message.id} 
+                      className={`border-b border-gray-20:0 dark:border-gray-700 pb-2 last:border-b-0 ${
+                        index === 0 ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700 p-2 rounded-md' : ''
+                      }`}
+                    >
                       <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Received: {new Date(message.created_at).toLocaleString()}</p>
                     </li>
