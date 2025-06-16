@@ -103,19 +103,32 @@ const SendMessage = () => {
     return null;
   }
 
+  const currentPartnerEmail = user.user_metadata.partner_email || 'Not set';
+
   if (!partnerId) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 p-4 text-center">
         <Heart className="w-12 h-12 text-pink-600 dark:text-purple-400 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Partner Not Found</h2>
-        <p className="text-muted-foreground mb-6">
-          It looks like your partner's profile isn't set up or linked. Please ensure your partner has registered with the email you provided.
+        <p className="text-muted-foreground mb-2">
+          It looks like your partner's profile isn't set up or linked.
         </p>
-        <Link to="/dashboard">
-          <Button className="bg-pink-600 hover:bg-pink-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700">
-            Back to Dashboard
-          </Button>
-        </Link>
+        <p className="text-muted-foreground mb-6">
+          Your current partner email is: <strong className="text-gray-900 dark:text-white">{currentPartnerEmail}</strong>.
+          Please ensure your partner has registered with this exact email, or update it in your profile.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link to="/edit-profile">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700">
+              <Users className="w-5 h-5 mr-2" /> Edit Partner Email
+            </Button>
+          </Link>
+          <Link to="/dashboard">
+            <Button variant="outline" className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
