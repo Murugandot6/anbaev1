@@ -64,40 +64,67 @@ serve(async (req) => {
       });
     }
 
-    // 3. Delete messages between the sender and receiver (two separate queries)
-    console.log('Attempting to delete messages from sender to receiver:', userId, '->', partnerId);
-    const { count: count1, error: deleteError1 } = await supabaseAdmin
-      .from('messages')
-      .delete()
-      .eq('sender_id', userId)
-      .eq('receiver_id', partnerId)
-      .select(); // Add .select() to get count
+    let totalDeletedCount = 0;
+    let deletionErrorOccurred = false;
 
-    if (deleteError1) {
-      console.error('Error deleting messages (sender to receiver):', deleteError1.message);
-      return new Response(JSON.stringify({ success: false, message: 'Failed to delete messages (sender to receiver).' }), {
+    // Handle messages sent between two distinct users OR messages sent to self
+    if (userId === partnerId) {
+      console.log('Detected self-messaging scenario. Attempting to delete messages where sender_id and receiver_id are the same.');
+      const { count, error } = await supabaseAdmin
+        .from('messages')
+        .delete()
+        .eq('sender_id', userId)
+        .eq('receiver_id', userId)
+        .select();
+
+      if (error) {
+        console.error('Error deleting self-sent messages:', error.message);
+        deletionErrorOccurred = true;
+      } else {
+        totalDeletedCount += count || 0;
+        console.log(`Deleted ${count} self-sent messages.`);
+      }
+    } else {
+      // Original logic for messages between two different users
+      console.log('Attempting to delete messages from sender to receiver:', userId, '->', partnerId);
+      const { count: count1, error: deleteError1 } = await supabaseAdmin
+        .from('messages')
+        .delete()
+        .eq('sender_id', userId)
+        .eq('receiver_id', partnerId)
+        .select();
+
+      if (deleteError1) {
+        console.error('Error deleting messages (sender to receiver):', deleteError1.message);
+        deletionErrorOccurred = true;
+      } else {
+        totalDeletedCount += count1 || 0;
+        console.log(`Deleted ${count1} messages from sender to receiver.`);
+      }
+
+      console.log('Attempting to delete messages from receiver to sender:', partnerId, '->', userId);
+      const { count: count2, error: deleteError2 } = await supabaseAdmin
+        .from('messages')
+        .delete()
+        .eq('sender_id', partnerId)
+        .eq('receiver_id', userId)
+        .select();
+
+      if (deleteError2) {
+        console.error('Error deleting messages (receiver to sender):', deleteError2.message);
+        deletionErrorOccurred = true;
+      } else {
+        totalDeletedCount += count2 || 0;
+        console.log(`Deleted ${count2} messages from receiver to sender.`);
+      }
+    }
+
+    if (deletionErrorOccurred) {
+      return new Response(JSON.stringify({ success: false, message: 'Failed to delete some messages.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
-    console.log(`Deleted ${count1} messages from sender to receiver.`);
-
-    console.log('Attempting to delete messages from receiver to sender:', partnerId, '->', userId);
-    const { count: count2, error: deleteError2 } = await supabaseAdmin
-      .from('messages')
-      .delete()
-      .eq('sender_id', partnerId)
-      .eq('receiver_id', userId)
-      .select(); // Add .select() to get count
-
-    if (deleteError2) {
-      console.error('Error deleting messages (receiver to sender):', deleteError2.message);
-      return new Response(JSON.stringify({ success: false, message: 'Failed to delete messages (receiver to sender).' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
-    console.log(`Deleted ${count2} messages from receiver to sender.`);
 
     // 4. Update the clear request status to 'completed'
     console.log('Attempting to update clear request status to completed for ID:', clearRequestId);
@@ -112,7 +139,7 @@ serve(async (req) => {
       console.log('Clear request status updated to completed.');
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'Messages cleared successfully.' }), {
+    return new Response(JSON.stringify({ success: true, message: `Messages cleared successfully. Total deleted: ${totalDeletedCount}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
