@@ -64,21 +64,38 @@ serve(async (req) => {
       });
     }
 
-    // 3. Delete messages between the sender and receiver
-    console.log('Attempting to delete messages between:', userId, 'and', partnerId);
-    const { error: deleteError } = await supabaseAdmin
+    // 3. Delete messages between the sender and receiver (two separate queries)
+    console.log('Attempting to delete messages from sender to receiver:', userId, '->', partnerId);
+    const { error: deleteError1 } = await supabaseAdmin
       .from('messages')
       .delete()
-      .or(`sender_id.eq.${userId}.and.receiver_id.eq.${partnerId},sender_id.eq.${partnerId}.and.receiver_id.eq.${userId}`);
+      .eq('sender_id', userId)
+      .eq('receiver_id', partnerId);
 
-    if (deleteError) {
-      console.error('Error deleting messages:', deleteError.message);
-      return new Response(JSON.stringify({ success: false, message: 'Failed to delete messages.' }), {
+    if (deleteError1) {
+      console.error('Error deleting messages (sender to receiver):', deleteError1.message);
+      return new Response(JSON.stringify({ success: false, message: 'Failed to delete messages (sender to receiver).' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
-    console.log('Messages deleted successfully.');
+    console.log('Messages from sender to receiver deleted successfully.');
+
+    console.log('Attempting to delete messages from receiver to sender:', partnerId, '->', userId);
+    const { error: deleteError2 } = await supabaseAdmin
+      .from('messages')
+      .delete()
+      .eq('sender_id', partnerId)
+      .eq('receiver_id', userId);
+
+    if (deleteError2) {
+      console.error('Error deleting messages (receiver to sender):', deleteError2.message);
+      return new Response(JSON.stringify({ success: false, message: 'Failed to delete messages (receiver to sender).' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+    console.log('Messages from receiver to sender deleted successfully.');
 
     // 4. Update the clear request status to 'completed'
     console.log('Attempting to update clear request status to completed for ID:', clearRequestId);
