@@ -6,11 +6,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Settings, MessageSquare, Inbox } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import ClearMessagesDialog from '@/components/ClearMessagesDialog'; // Import the new component
 
 interface Profile {
-  id: string; // Add id to profile interface
+  id: string;
   username: string | null;
   email: string | null;
+  partner_email?: string | null; // Add partner_email to profile interface
+  partner_nickname?: string | null; // Add partner_nickname to profile interface
 }
 
 interface Message {
@@ -21,8 +24,8 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
-  senderProfile?: Profile | null; // Add senderProfile
-  receiverProfile?: Profile | null; // Add receiverProfile
+  senderProfile?: Profile | null;
+  receiverProfile?: Profile | null;
 }
 
 const Dashboard = () => {
@@ -31,6 +34,9 @@ const Dashboard = () => {
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
+  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
+  const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null);
+  const [fetchingProfiles, setFetchingProfiles] = useState(true);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -41,6 +47,55 @@ const Dashboard = () => {
       navigate('/login');
     }
   };
+
+  useEffect(() => {
+    const fetchUserAndPartnerProfiles = async () => {
+      if (!user) {
+        setFetchingProfiles(false);
+        return;
+      }
+
+      // Fetch current user's profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username, email, partner_email, partner_nickname')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error fetching current user profile:', profileError.message);
+        toast.error('Failed to load your profile.');
+      } else if (profileData) {
+        setCurrentUserProfile(profileData);
+        // Now fetch partner's profile using partner_email from current user's profile
+        if (profileData.partner_email) {
+          const { data: partnerData, error: partnerError } = await supabase
+            .from('profiles')
+            .select('id, username, email')
+            .eq('email', profileData.partner_email)
+            .single();
+
+          if (partnerError && partnerError.code !== 'PGRST116') {
+            console.error('Error fetching partner profile:', partnerError.message);
+            toast.error('Failed to load partner profile.');
+          } else if (partnerData) {
+            setPartnerProfile(partnerData);
+          } else {
+            console.log('Partner profile not found for email:', profileData.partner_email);
+            setPartnerProfile(null); // Explicitly set to null if not found
+          }
+        } else {
+          setPartnerProfile(null); // No partner email set
+        }
+      }
+      setFetchingProfiles(false);
+    };
+
+    if (!sessionLoading && user) {
+      fetchUserAndPartnerProfiles();
+    }
+  }, [user, sessionLoading]);
+
 
   useEffect(() => {
     const fetchMessagesAndProfiles = async () => {
@@ -123,10 +178,10 @@ const Dashboard = () => {
     fetchMessagesAndProfiles();
   }, [user, sessionLoading]);
 
-  if (sessionLoading) {
+  if (sessionLoading || fetchingProfiles) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 text-foreground">
-        <p className="text-xl">Loading user session...</p>
+        <p className="text-xl">Loading user session and profiles...</p>
       </div>
     );
   }
@@ -150,6 +205,13 @@ const Dashboard = () => {
             <Button onClick={handleLogout} className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800">
               <LogOut className="w-5 h-5 mr-2" /> Logout
             </Button>
+            {user && (
+              <ClearMessagesDialog
+                partnerId={partnerProfile?.id || null}
+                partnerNickname={partnerProfile?.username || currentUserProfile?.partner_nickname || null}
+                currentUserId={user.id}
+              />
+            )}
           </div>
         </div>
 
