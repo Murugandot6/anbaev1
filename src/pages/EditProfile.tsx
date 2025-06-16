@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,6 +19,7 @@ const formSchema = z.object({
 const EditProfile = () => {
   const navigate = useNavigate();
   const { user, loading: sessionLoading } = useSession();
+  const [profileExists, setProfileExists] = useState(false); // New state to track if profile exists
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,14 +41,19 @@ const EditProfile = () => {
         .eq('id', user.id)
         .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no row found, which is not a critical error here
         console.error('Error fetching profile:', error.message);
         toast.error('Failed to load profile data.');
+        setProfileExists(false);
       } else if (data) {
         form.reset({
           username: data.username || '',
           partner_email: data.partner_email || '',
         });
+        setProfileExists(true);
+      } else {
+        // No profile found, initialize with empty values (defaultValues)
+        setProfileExists(false);
       }
     };
 
@@ -61,17 +67,34 @@ const EditProfile = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          username: values.username || null, // Set to null if empty string
-          partner_email: values.partner_email || null, // Set to null if empty string
-        })
-        .eq('id', user.id);
+      let dbError = null;
 
-      if (error) {
-        toast.error(error.message);
-        console.error('Profile update error:', error.message);
+      if (profileExists) {
+        // If profile exists, update it
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            username: values.username || null,
+            partner_email: values.partner_email || null,
+          })
+          .eq('id', user.id);
+        dbError = error;
+      } else {
+        // If profile does not exist, insert it
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            username: values.username || null,
+            email: user.email, // Assuming email is always available from auth.user
+            partner_email: values.partner_email || null,
+          });
+        dbError = error;
+      }
+
+      if (dbError) {
+        toast.error(dbError.message);
+        console.error('Profile DB operation error:', dbError.message);
       } else {
         // Also update user_metadata for immediate reflection in session context
         const { data: updateAuthData, error: updateAuthError } = await supabase.auth.updateUser({
