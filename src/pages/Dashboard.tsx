@@ -7,6 +7,11 @@ import { LogOut, Settings, MessageSquare, Inbox } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
+interface Profile {
+  username: string | null;
+  email: string | null;
+}
+
 interface Message {
   id: string;
   sender_id: string;
@@ -15,6 +20,7 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
+  profiles: Profile | null; // Add profiles to the Message interface
 }
 
 const Dashboard = () => {
@@ -43,13 +49,13 @@ const Dashboard = () => {
 
       setMessagesLoading(true);
       try {
-        // Fetch latest 3 sent messages
+        // Fetch latest 3 sent messages, joining with profiles to get receiver's info
         const { data: sentData, error: sentError } = await supabase
           .from('messages')
-          .select('*')
+          .select('*, profiles!messages_receiver_id_fkey(username, email)') // Join with profiles table
           .eq('sender_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(3); // Limit to 3 messages
+          .limit(3);
 
         if (sentError) {
           console.error('Error fetching sent messages:', sentError.message);
@@ -58,13 +64,13 @@ const Dashboard = () => {
           setSentMessages(sentData || []);
         }
 
-        // Fetch latest 3 received messages
+        // Fetch latest 3 received messages, joining with profiles to get sender's info
         const { data: receivedData, error: receivedError } = await supabase
           .from('messages')
-          .select('*')
+          .select('*, profiles!messages_sender_id_fkey(username, email)') // Join with profiles table
           .eq('receiver_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(3); // Limit to 3 messages
+          .limit(3);
 
         if (receivedError) {
           console.error('Error fetching received messages:', receivedError.message);
@@ -166,7 +172,9 @@ const Dashboard = () => {
                       }`}
                     >
                       <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Sent: {new Date(message.created_at).toLocaleString()}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        To: {message.profiles?.username || message.profiles?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -192,7 +200,9 @@ const Dashboard = () => {
                       }`}
                     >
                       <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Received: {new Date(message.created_at).toLocaleString()}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        From: {message.profiles?.username || message.profiles?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}
+                      </p>
                     </li>
                   ))}
                 </ul>
