@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } => 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,14 +46,14 @@ const SendMessage = () => {
   useEffect(() => {
     const fetchPartnerDetails = async () => {
       if (sessionLoading || !user) {
-        console.log('Session loading or user not available. Skipping partner fetch.');
+        console.log('SendMessage - Session loading or user not available. Skipping partner fetch.');
         setFetchingPartner(false);
         return;
       }
 
-      console.log('Current user object:', user);
+      console.log('SendMessage - Current user object:', user);
       const currentUsersPartnerEmail = user?.user_metadata?.partner_email;
-      console.log('Attempting to fetch partner with email from user metadata:', currentUsersPartnerEmail);
+      console.log('SendMessage - Attempting to fetch partner with email from user metadata:', currentUsersPartnerEmail);
 
       if (currentUsersPartnerEmail) {
         const { data, error } = await supabase
@@ -62,24 +62,24 @@ const SendMessage = () => {
           .eq('email', currentUsersPartnerEmail);
 
         if (error) {
-          console.error('Error fetching partner profile from Supabase:', error.message);
-          console.log('Supabase query error details:', error);
+          console.error('SendMessage - Error fetching partner profile from Supabase:', error.message);
+          console.log('SendMessage - Supabase query error details:', error);
           toast.error('An error occurred while fetching partner profile.');
           setPartnerId(null);
           setPartnerNickname(null);
         } else if (data && data.length > 0) {
           const partnerData = data[0];
-          console.log('Partner profile found:', partnerData);
+          console.log('SendMessage - Partner profile found:', partnerData);
           setPartnerId(partnerData.id);
           setPartnerNickname(partnerData.username);
         } else {
-          console.log('No partner profile data returned for email:', currentUsersPartnerEmail);
+          console.log('SendMessage - No partner profile data returned for email:', currentUsersPartnerEmail);
           toast.error('Partner profile not found for the specified email. Please ensure your partner has registered.');
           setPartnerId(null);
           setPartnerNickname(null);
         }
       } else {
-        console.log('Current user does not have a partner email set in metadata. Displaying message to update profile.');
+        console.log('SendMessage - Current user does not have a partner email set in metadata. Displaying message to update profile.');
         toast.error('Your profile does not have a partner email set. Please update your profile.');
       }
       setFetchingPartner(false);
@@ -92,6 +92,8 @@ const SendMessage = () => {
       toast.error('Cannot send message: User or partner not identified.');
       return;
     }
+
+    console.log('SendMessage - Sending message with Sender ID:', user.id, 'and Receiver ID:', partnerId);
 
     try {
       const { error } = await supabase.from('messages').insert({

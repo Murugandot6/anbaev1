@@ -192,6 +192,12 @@ const Dashboard = () => {
     return null;
   }
 
+  // Log the IDs right before rendering ClearMessagesDialog
+  console.log('Dashboard - Current User ID:', user.id);
+  console.log('Dashboard - Current User Partner Email from metadata:', user.user_metadata.partner_email);
+  console.log('Dashboard - Resolved Partner Profile ID for ClearMessagesDialog:', partnerProfile?.id);
+
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 text-foreground p-4 pt-20">
       <div className="w-full max-w-4xl mx-auto">
