@@ -208,14 +208,17 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
       return;
     }
 
+    const payload = {
+      clearRequestId: pendingOutgoingRequest.id,
+      userId: user.id,
+      partnerId: pendingOutgoingRequest.receiver_id,
+    };
+    console.log('Invoking clear-messages Edge Function with payload:', payload); // Log payload
+
     // Call Edge Function to clear messages
     try {
       const { data, error } = await supabase.functions.invoke('clear-messages', {
-        body: JSON.stringify({
-          clearRequestId: pendingOutgoingRequest.id,
-          userId: user.id,
-          partnerId: pendingOutgoingRequest.receiver_id,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (error) {

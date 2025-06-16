@@ -13,9 +13,11 @@ serve(async (req) => {
 
   try {
     const { clearRequestId, userId, partnerId } = await req.json();
+    console.log('Edge Function received payload:', { clearRequestId, userId, partnerId });
 
     // Validate input
     if (!clearRequestId || !userId || !partnerId) {
+      console.error('Missing required parameters:', { clearRequestId, userId, partnerId });
       return new Response(JSON.stringify({ success: false, message: 'Missing required parameters.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -36,14 +38,17 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !clearRequest) {
-      console.error('Error fetching clear request:', fetchError?.message || 'Request not found');
+      console.error('Error fetching clear request or request not found:', fetchError?.message || 'Request not found', { clearRequestId });
       return new Response(JSON.stringify({ success: false, message: 'Clear request not found or error fetching.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404,
       });
     }
 
+    console.log('Fetched clear request:', clearRequest);
+
     if (clearRequest.status !== 'accepted') {
+      console.error('Clear request status is not accepted:', clearRequest.status);
       return new Response(JSON.stringify({ success: false, message: 'Clear request not accepted by partner.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
@@ -52,6 +57,7 @@ serve(async (req) => {
 
     // 2. Verify that the user invoking the function is the sender of the accepted request
     if (clearRequest.sender_id !== userId) {
+      console.error('Unauthorized: userId does not match sender_id.', { clearRequestSenderId: clearRequest.sender_id, userId });
       return new Response(JSON.stringify({ success: false, message: 'Unauthorized to clear messages for this request.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
@@ -59,6 +65,7 @@ serve(async (req) => {
     }
 
     // 3. Delete messages between the sender and receiver
+    console.log('Attempting to delete messages between:', userId, 'and', partnerId);
     const { error: deleteError } = await supabaseAdmin
       .from('messages')
       .delete()
@@ -71,8 +78,10 @@ serve(async (req) => {
         status: 500,
       });
     }
+    console.log('Messages deleted successfully.');
 
     // 4. Update the clear request status to 'completed'
+    console.log('Attempting to update clear request status to completed for ID:', clearRequestId);
     const { error: updateRequestError } = await supabaseAdmin
       .from('clear_requests')
       .update({ status: 'completed' })
@@ -80,6 +89,8 @@ serve(async (req) => {
 
     if (updateRequestError) {
       console.error('Error updating clear request status to completed:', updateRequestError.message);
+    } else {
+      console.log('Clear request status updated to completed.');
     }
 
     return new Response(JSON.stringify({ success: true, message: 'Messages cleared successfully.' }), {
@@ -88,7 +99,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Edge function error:', error.message);
+    console.error('General Edge function error:', error.message, error);
     return new Response(JSON.stringify({ success: false, message: 'Internal server error.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
