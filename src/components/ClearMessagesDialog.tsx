@@ -48,6 +48,20 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
   const [pendingIncomingRequest, setPendingIncomingRequest] = useState<ClearRequest | null>(null);
   const [pendingOutgoingRequest, setPendingOutgoingRequest] = useState<ClearRequest | null>(null); // For sender feedback
 
+  // Function to fetch sender profile
+  const fetchSenderProfile = useCallback(async (senderId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username, email')
+      .eq('id', senderId)
+      .single();
+    if (error) {
+      console.error('Error fetching sender profile:', error.message);
+      return null;
+    }
+    return data;
+  }, []);
+
   // Fetch pending requests on component mount and subscribe to real-time updates
   useEffect(() => {
     const fetchAndSubscribeRequests = async () => {
@@ -65,7 +79,12 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
       if (incomingError) {
         console.error('Error fetching incoming clear requests:', incomingError.message);
       } else if (incomingRequests && incomingRequests.length > 0) {
-        setPendingIncomingRequest(incomingRequests[0] as ClearRequest);
+        // Supabase returns joined data as an array for the foreign key relationship
+        const requestWithProfile = {
+          ...incomingRequests[0],
+          senderProfile: incomingRequests[0].sender_id, // Assign the joined profile data
+        } as ClearRequest;
+        setPendingIncomingRequest(requestWithProfile);
         setIsPartnerResponseOpen(true); // Open dialog if there's a pending request
       }
 
@@ -106,12 +125,14 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
           table: 'clear_requests',
           filter: `receiver_id=eq.${currentUserId}` // Listen for requests sent to me
         },
-        (payload) => {
+        async (payload) => {
           console.log('Realtime payload (incoming):', payload);
           if (payload.eventType === 'INSERT' && payload.new.status === 'pending') {
-            setPendingIncomingRequest(payload.new as ClearRequest);
+            const newRequest = payload.new as ClearRequest;
+            const senderProfile = await fetchSenderProfile(newRequest.sender_id);
+            setPendingIncomingRequest({ ...newRequest, senderProfile });
             setIsPartnerResponseOpen(true);
-            toast.info(`New clear message request from ${payload.new.sender_id}!`); // Basic toast
+            toast.info(`New clear message request from ${senderProfile?.username || senderProfile?.email || 'Your Partner'}!`);
           } else if (payload.eventType === 'UPDATE' && payload.new.status !== 'pending' && payload.new.sender_id === currentUserId) {
             // This part is for sender to receive updates on their sent requests
             setPendingOutgoingRequest(payload.new as ClearRequest);
@@ -128,7 +149,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [currentUserId, fetchSenderProfile]);
 
 
   const handleSendRequest = async () => {
