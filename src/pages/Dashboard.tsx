@@ -105,12 +105,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchMessagesAndProfiles = async () => {
-      if (sessionLoading || !user) {
-        setMessagesLoading(false);
+      if (!user) {
+        setMessagesLoading(false); // Set loading to false if no user
         return;
       }
 
-      setMessagesLoading(true);
+      setMessagesLoading(true); // Set loading to true at the start of fetch
       try {
         // Fetch latest 3 sent messages
         const { data: sentData, error: sentError } = await supabase
@@ -151,8 +151,7 @@ const Dashboard = () => {
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError.message);
           toast.error('Failed to load associated profiles.');
-          setMessagesLoading(false);
-          return;
+          return; // Do not set messagesLoading to false here, let finally handle it
         }
 
         const profilesMap = new Map<string, Profile>();
@@ -177,14 +176,17 @@ const Dashboard = () => {
         console.error('Unexpected error fetching messages:', error);
         toast.error('An unexpected error occurred while loading messages.');
       } finally {
-        setMessagesLoading(false);
+        setMessagesLoading(false); // Always set to false after fetch attempt
       }
     };
 
-    fetchMessagesAndProfiles();
+    // Only fetch if session is not loading and user is available
+    if (!sessionLoading && user) {
+      fetchMessagesAndProfiles();
+    }
   }, [user, sessionLoading, refreshMessagesTrigger]); // Add refreshMessagesTrigger to dependencies
 
-  if (sessionLoading || fetchingProfiles) {
+  if (sessionLoading || fetchingProfiles || messagesLoading) { // Check all loading states
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 text-foreground">
         <p className="text-xl">Loading user session and profiles...</p>
@@ -266,9 +268,7 @@ const Dashboard = () => {
               <CardTitle className="text-gray-900 dark:text-white text-xl">Outbox ({sentMessages.length})</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground text-base">
-              {messagesLoading ? (
-                <p>Loading sent messages...</p>
-              ) : sentMessages.length > 0 ? (
+              {sentMessages.length > 0 ? (
                 <ul className="space-y-2">
                   {sentMessages.map((message, index) => (
                     <li 
@@ -296,9 +296,7 @@ const Dashboard = () => {
               <CardTitle className="text-gray-900 dark:text-white text-xl">Inbox ({receivedMessages.length})</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground text-base">
-              {messagesLoading ? (
-                <p>Loading received messages...</p>
-              ) : receivedMessages.length > 0 ? (
+              {receivedMessages.length > 0 ? (
                 <ul className="space-y-2">
                   {receivedMessages.map((message, index) => (
                     <li 

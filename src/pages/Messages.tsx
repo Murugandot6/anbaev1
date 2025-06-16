@@ -60,12 +60,12 @@ const Messages = () => {
 
   useEffect(() => {
     const fetchAllMessagesAndProfiles = async () => {
-      if (sessionLoading || !user) {
-        setMessagesLoading(false);
+      if (!user) {
+        setMessagesLoading(false); // Set loading to false if no user
         return;
       }
 
-      setMessagesLoading(true);
+      setMessagesLoading(true); // Set loading to true at the start of fetch
       try {
         // Fetch all sent messages
         const { data: sentData, error: sentError } = await supabase
@@ -104,8 +104,7 @@ const Messages = () => {
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError.message);
           toast.error('Failed to load associated profiles.');
-          setMessagesLoading(false);
-          return;
+          return; // Do not set messagesLoading to false here, let finally handle it
         }
 
         const initialProfilesMap = new Map<string, Profile>();
@@ -131,11 +130,18 @@ const Messages = () => {
         console.error('Unexpected error fetching messages:', error);
         toast.error('An unexpected error occurred while loading messages.');
       } finally {
-        setMessagesLoading(false);
+        setMessagesLoading(false); // Always set to false after fetch attempt
       }
     };
 
-    fetchAllMessagesAndProfiles();
+    // Only fetch if session is not loading and user is available
+    if (!sessionLoading && user) {
+      fetchAllMessagesAndProfiles();
+    } else if (!sessionLoading && !user) {
+      // If session is done loading and no user, navigate to login
+      navigate('/login');
+    }
+
 
     // Set up real-time subscription
     const channel = supabase
@@ -185,9 +191,12 @@ const Messages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, sessionLoading, profilesMap]); // Added profilesMap to dependencies to ensure fetchProfile works correctly
+  }, [user, sessionLoading, navigate]); // Removed profilesMap from dependencies
+  // The `profilesMap` is managed by `fetchProfile` which is called within the effect,
+  // so it doesn't need to be a dependency itself to avoid re-running the entire effect.
 
-  if (sessionLoading) {
+
+  if (sessionLoading || messagesLoading) { // Check both session and messages loading
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 text-foreground">
         <p className="text-xl">Loading messages...</p>
@@ -196,7 +205,7 @@ const Messages = () => {
   }
 
   if (!user) {
-    navigate('/login');
+    // This case is handled by the navigate('/login') in useEffect, but kept for clarity
     return null;
   }
 
@@ -227,9 +236,7 @@ const Messages = () => {
                 <CardTitle className="text-gray-900 dark:text-white">Received Messages</CardTitle>
               </CardHeader>
               <CardContent className="text-muted-foreground">
-                {messagesLoading ? (
-                  <p>Loading received messages...</p>
-                ) : receivedMessages.length > 0 ? (
+                {receivedMessages.length > 0 ? (
                   <ul className="space-y-4">
                     {receivedMessages.map((message) => (
                       <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
@@ -262,9 +269,7 @@ const Messages = () => {
                 <CardTitle className="text-gray-900 dark:text-white">Sent Messages</CardTitle>
               </CardHeader>
               <CardContent className="text-muted-foreground">
-                {messagesLoading ? (
-                  <p>Loading sent messages...</p>
-                ) : sentMessages.length > 0 ? (
+                {sentMessages.length > 0 ? (
                   <ul className="space-y-4">
                     {sentMessages.map((message) => (
                       <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
