@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Heart, Send, Mail, MessageSquare, Users } from 'lucide-react'; // Added Users here
+import { Heart, Send, Mail, MessageSquare, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '@/contexts/SessionContext';
 
@@ -39,23 +39,33 @@ const SendMessage = () => {
         return;
       }
 
-      if (user?.user_metadata?.partner_email) {
+      const currentUsersPartnerEmail = user?.user_metadata?.partner_email;
+      console.log('Current user\'s partner_email from metadata:', currentUsersPartnerEmail);
+
+      if (currentUsersPartnerEmail) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, username') // Fetch username (nickname) as well
-          .eq('email', user.user_metadata.partner_email)
+          .select('id, username, email') // Fetch email as well for debugging
+          .eq('email', currentUsersPartnerEmail)
           .single();
 
         if (error) {
-          console.error('Error fetching partner ID:', error.message);
+          console.error('Error fetching partner profile:', error.message);
+          console.log('Supabase query error details:', error);
           toast.error('Could not find partner profile. Please ensure your partner has registered.');
           setPartnerId(null);
           setPartnerNickname(null);
         } else if (data) {
+          console.log('Partner profile found:', data);
           setPartnerId(data.id);
-          setPartnerNickname(data.username); // Assuming 'username' in profiles table stores nickname
+          setPartnerNickname(data.username);
+        } else {
+          console.log('No partner profile found for email:', currentUsersPartnerEmail);
+          setPartnerId(null);
+          setPartnerNickname(null);
         }
       } else {
+        console.log('Current user does not have a partner email set in metadata.');
         toast.error('Your profile does not have a partner email set. Please update your profile.');
       }
       setFetchingPartner(false);
