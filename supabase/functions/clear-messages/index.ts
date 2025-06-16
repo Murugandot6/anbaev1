@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const { clearRequestId, userId, partnerId } = await req.json();
     console.log('Edge Function received payload:', { clearRequestId, userId, partnerId });
-    console.log(`Is userId === partnerId? ${userId === partnerId}`); // New log
+    console.log(`Is userId === partnerId? ${userId === partnerId}`); // Log the comparison result
 
     // Validate input
     if (!clearRequestId || !userId || !partnerId) {
@@ -73,10 +73,9 @@ serve(async (req) => {
       console.log('Detected self-messaging scenario. Attempting to delete messages where sender_id and receiver_id are the same.');
       const { count, error } = await supabaseAdmin
         .from('messages')
-        .delete()
+        .delete({ count: 'exact' }) // Request exact count
         .eq('sender_id', userId)
-        .eq('receiver_id', userId)
-        .select();
+        .eq('receiver_id', userId);
 
       if (error) {
         console.error('Error deleting self-sent messages:', error.message);
@@ -90,10 +89,9 @@ serve(async (req) => {
       console.log('Attempting to delete messages from sender to receiver:', userId, '->', partnerId);
       const { count: count1, error: deleteError1 } = await supabaseAdmin
         .from('messages')
-        .delete()
+        .delete({ count: 'exact' }) // Request exact count
         .eq('sender_id', userId)
-        .eq('receiver_id', partnerId)
-        .select();
+        .eq('receiver_id', partnerId);
 
       if (deleteError1) {
         console.error('Error deleting messages (sender to receiver):', deleteError1.message);
@@ -106,10 +104,9 @@ serve(async (req) => {
       console.log('Attempting to delete messages from receiver to sender:', partnerId, '->', userId);
       const { count: count2, error: deleteError2 } = await supabaseAdmin
         .from('messages')
-        .delete()
+        .delete({ count: 'exact' }) // Request exact count
         .eq('sender_id', partnerId)
-        .eq('receiver_id', userId)
-        .select();
+        .eq('receiver_id', userId);
 
       if (deleteError2) {
         console.error('Error deleting messages (receiver to sender):', deleteError2.message);
