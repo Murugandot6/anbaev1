@@ -62,7 +62,7 @@ serve(async (req) => {
     const { error: deleteError } = await supabaseAdmin
       .from('messages')
       .delete()
-      .or(`(sender_id.eq.${userId},receiver_id.eq.${partnerId}),(sender_id.eq.${partnerId},receiver_id.eq.${userId})`);
+      .or(`sender_id.eq.${userId}.and.receiver_id.eq.${partnerId},sender_id.eq.${partnerId}.and.receiver_id.eq.${userId}`);
 
     if (deleteError) {
       console.error('Error deleting messages:', deleteError.message);
