@@ -11,6 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { ArrowLeft, Reply, User, Mail, MessageSquare, Tag, Zap, Smile } from 'lucide-react';
+import { Separator } from '@/components/ui/separator'; // Import Separator
 
 interface Profile {
   id: string;
