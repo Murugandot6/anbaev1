@@ -14,7 +14,6 @@ serve(async (req) => {
   try {
     const { clearRequestId, userId, partnerId } = await req.json();
     console.log('Edge Function received payload:', { clearRequestId, userId, partnerId });
-    console.log(`Is userId === partnerId? ${userId === partnerId}`); // Log the comparison result
 
     // Validate input
     if (!clearRequestId || !userId || !partnerId) {
@@ -25,11 +24,20 @@ serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error('Supabase environment variables are not set!');
+      return new Response(JSON.stringify({ success: false, message: 'Server configuration error: Supabase credentials missing.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
     // Create a Supabase client with the service role key for elevated privileges
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    console.log('Supabase admin client created.');
 
     // 1. Verify the clear request status
     const { data: clearRequest, error: fetchError } = await supabaseAdmin
@@ -38,9 +46,16 @@ serve(async (req) => {
       .eq('id', clearRequestId)
       .single();
 
-    if (fetchError || !clearRequest) {
-      console.error('Error fetching clear request or request not found:', fetchError?.message || 'Request not found', { clearRequestId });
-      return new Response(JSON.stringify({ success: false, message: 'Clear request not found or error fetching.' }), {
+    if (fetchError) {
+      console.error('Error fetching clear request:', fetchError.message, fetchError);
+      return new Response(JSON.stringify({ success: false, message: `Error fetching clear request: ${fetchError.message}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500, // Changed to 500 for database errors
+      });
+    }
+    if (!clearRequest) {
+      console.error('Clear request not found:', { clearRequestId });
+      return new Response(JSON.stringify({ success: false, message: 'Clear request not found.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404,
       });
@@ -78,7 +93,7 @@ serve(async (req) => {
         .eq('receiver_id', userId);
 
       if (error) {
-        console.error('Error deleting self-sent messages:', error.message);
+        console.error('Error deleting self-sent messages:', error.message, error);
         deletionErrorOccurred = true;
       } else {
         totalDeletedCount += count || 0;
@@ -94,7 +109,7 @@ serve(async (req) => {
         .eq('receiver_id', partnerId);
 
       if (deleteError1) {
-        console.error('Error deleting messages (sender to receiver):', deleteError1.message);
+        console.error('Error deleting messages (sender to receiver):', deleteError1.message, deleteError1);
         deletionErrorOccurred = true;
       } else {
         totalDeletedCount += count1 || 0;
@@ -109,7 +124,7 @@ serve(async (req) => {
         .eq('receiver_id', userId);
 
       if (deleteError2) {
-        console.error('Error deleting messages (receiver to sender):', deleteError2.message);
+        console.error('Error deleting messages (receiver to sender):', deleteError2.message, deleteError2);
         deletionErrorOccurred = true;
       } else {
         totalDeletedCount += count2 || 0;
@@ -132,7 +147,9 @@ serve(async (req) => {
       .eq('id', clearRequestId);
 
     if (updateRequestError) {
-      console.error('Error updating clear request status to completed:', updateRequestError.message);
+      console.error('Error updating clear request status to completed:', updateRequestError.message, updateRequestError);
+      // This error is logged but doesn't prevent a success response for message clearing,
+      // as messages are already deleted.
     } else {
       console.log('Clear request status updated to completed.');
     }
@@ -142,9 +159,9 @@ serve(async (req) => {
       status: 200,
     });
 
-  } catch (error) {
+  } catch (error: any) { // Explicitly type error as any for message property
     console.error('General Edge function error:', error.message, error);
-    return new Response(JSON.stringify({ success: false, message: 'Internal server error.' }), {
+    return new Response(JSON.stringify({ success: false, message: `Internal server error: ${error.message}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
