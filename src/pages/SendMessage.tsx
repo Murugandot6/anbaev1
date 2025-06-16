@@ -8,13 +8,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Heart, Send, Mail, MessageSquare, Users } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Heart, Send, MessageSquare, Users, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '@/contexts/SessionContext';
 
 const formSchema = z.object({
-  subject: z.string().min(1, { message: 'Subject cannot be empty.' }).max(100, { message: 'Subject is too long.' }),
+  message_type: z.enum(['Grievance', 'Compliment', 'Good Memory', 'How I Feel'], {
+    required_error: 'Please select a message type.',
+  }),
   content: z.string().min(1, { message: 'Message content cannot be empty.' }).max(1000, { message: 'Message is too long.' }),
+  priority: z.enum(['Low', 'Medium', 'High', 'Urgent'], {
+    required_error: 'Please select a priority.',
+  }),
+  mood: z.enum(['Happy', 'Sad', 'Angry', 'Neutral', 'Anxious', 'Grateful'], {
+    required_error: 'Please select your mood.',
+  }),
 });
 
 const SendMessage = () => {
@@ -27,8 +36,10 @@ const SendMessage = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      subject: '',
+      message_type: 'Grievance',
       content: '',
+      priority: 'Medium',
+      mood: 'Neutral',
     },
   });
 
@@ -40,12 +51,11 @@ const SendMessage = () => {
         return;
       }
 
-      console.log('Current user object:', user); // Log the full user object
+      console.log('Current user object:', user);
       const currentUsersPartnerEmail = user?.user_metadata?.partner_email;
       console.log('Attempting to fetch partner with email from user metadata:', currentUsersPartnerEmail);
 
       if (currentUsersPartnerEmail) {
-        // Removed .single() to see the raw response
         const { data, error } = await supabase
           .from('profiles')
           .select('id, username, email')
@@ -58,7 +68,6 @@ const SendMessage = () => {
           setPartnerId(null);
           setPartnerNickname(null);
         } else if (data && data.length > 0) {
-          // If data is an array and has elements, take the first one
           const partnerData = data[0];
           console.log('Partner profile found:', partnerData);
           setPartnerId(partnerData.id);
@@ -88,20 +97,23 @@ const SendMessage = () => {
       const { error } = await supabase.from('messages').insert({
         sender_id: user.id,
         receiver_id: partnerId,
-        subject: values.subject,
+        subject: values.message_type, // Use message_type as subject
         content: values.content,
+        message_type: values.message_type, // New field
+        priority: values.priority,         // New field
+        mood: values.mood,                 // New field
       });
 
       if (error) {
         toast.error(error.message);
         console.error('Send message error:', error.message);
       } else {
-        toast.success('Message sent successfully!');
+        toast.success('Grievance sent successfully!');
         navigate('/dashboard');
       }
     } catch (error) {
       console.error('Unexpected send message error:', error);
-      toast.error('An unexpected error occurred while sending the message.');
+      toast.error('An unexpected error occurred while sending the grievance.');
     }
   };
 
@@ -149,24 +161,34 @@ const SendMessage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 p-4">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 p-4 pt-20">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
         <div className="text-center mb-6">
           <Heart className="w-12 h-12 text-pink-600 dark:text-purple-400 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Send Message to {partnerNickname || 'Your Partner'}</h2>
-          <p className="text-muted-foreground">Share your thoughts.</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Send a Grievance</h2>
+          <p className="text-muted-foreground">Share your thoughts with {partnerNickname || 'your partner'}.</p>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="subject"
+              name="message_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Mail className="w-4 h-4" /> Subject</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Regarding..." {...field} />
-                  </FormControl>
+                  <FormLabel className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Message Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a message type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Grievance">💔 Grievance</SelectItem>
+                      <SelectItem value="Compliment">💖 Compliment</SelectItem>
+                      <SelectItem value="Good Memory">✨ Good Memory</SelectItem>
+                      <SelectItem value="How I Feel">🤔 How I Feel</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -176,22 +198,72 @@ const SendMessage = () => {
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Message</FormLabel>
+                  <FormLabel className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Explanation</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Write your message here..." {...field} rows={5} />
+                    <Textarea placeholder="Explain the situation, how it makes you feel, and what you need." {...field} rows={5} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-pink-600 hover:bg-pink-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700">
-              <Send className="w-4 h-4 mr-2" /> Send Message
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">Priority</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Low">Low</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mood"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">Your Mood</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your mood" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Happy">😊 Happy</SelectItem>
+                        <SelectItem value="Sad">😔 Sad</SelectItem>
+                        <SelectItem value="Angry">😠 Angry</SelectItem>
+                        <SelectItem value="Neutral">😐 Neutral</SelectItem>
+                        <SelectItem value="Anxious">😟 Anxious</SelectItem>
+                        <SelectItem value="Grateful">🙏 Grateful</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800">
+              <Send className="w-4 h-4 mr-2" /> Send Grievance
             </Button>
           </form>
         </Form>
         <div className="mt-6 text-center">
           <Link to="/dashboard" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
-            ← Back to Dashboard
+            <ArrowLeft className="inline-block w-4 h-4 mr-1" /> Back to Dashboard
           </Link>
         </div>
       </div>
