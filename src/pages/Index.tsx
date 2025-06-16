@@ -79,17 +79,19 @@ const Index = () => {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8 animate-fade-in delay-400">
-        <Button className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white px-4 py-2 rounded-md shadow-sm">
-          Anbae Search
-        </Button>
-        <Button className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white px-4 py-2 rounded-md shadow-sm">
-          I'm Feeling Lucky
-        </Button>
+        <Link to="/login">
+          <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800 px-4 py-2 rounded-md shadow-sm">
+            Login
+          </Button>
+        </Link>
+        <Link to="/register">
+          <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800 px-4 py-2 rounded-md shadow-sm">
+            Register
+          </Button>
+        </Link>
       </div>
 
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400 animate-fade-in delay-600">
-        <p>Anbae offered in: <span className="text-blue-600 hover:underline cursor-pointer">Hindi</span> <span className="text-blue-600 hover:underline cursor-pointer">Bengali</span> <span className="text-blue-600 hover:underline cursor-pointer">Telugu</span> <span className="text-blue-600 hover:underline cursor-pointer">Marathi</span> <span className="text-blue-600 hover:underline cursor-pointer">Tamil</span> <span className="text-blue-600 hover:underline cursor-pointer">Gujarati</span> <span className="text-blue-600 hover:underline cursor-pointer">Kannada</span> <span className="text-blue-600 hover:underline cursor-pointer">Malayalam</span> <span className="text-blue-600 hover:underline cursor-pointer">Punjabi</span></p>
-      </div>
+      {/* The language list div has been removed */}
     </div>
   );
 };
