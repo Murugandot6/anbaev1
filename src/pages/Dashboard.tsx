@@ -49,6 +49,11 @@ const Dashboard = () => {
     }
   };
 
+  const handleViewMessages = () => {
+    console.log('View Inbox & Outbox button clicked!');
+    navigate('/messages');
+  };
+
   useEffect(() => {
     const fetchUserAndPartnerProfiles = async () => {
       if (!user) {
@@ -244,11 +249,14 @@ const Dashboard = () => {
               <MessageSquare className="w-6 h-6 mr-3" /> Send New Message
             </Button>
           </Link>
-          <Link to="/messages" className="w-full">
-            <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 py-6 text-lg">
-              <Inbox className="w-6 h-6 mr-3" /> View Inbox & Outbox
-            </Button>
-          </Link>
+          {/* Modified button to use programmatic navigation */}
+          <Button 
+            size="lg" 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 py-6 text-lg"
+            onClick={handleViewMessages}
+          >
+            <Inbox className="w-6 h-6 mr-3" /> View Inbox & Outbox
+          </Button>
         </div>
 
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Recent Messages</h2>
