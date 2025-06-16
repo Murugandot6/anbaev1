@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 interface Profile {
+  id: string; // Add id to profile interface
   username: string | null;
   email: string | null;
 }
@@ -20,7 +21,8 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
-  profiles: Profile | null; // Add profiles to the Message interface
+  senderProfile?: Profile | null; // Add senderProfile
+  receiverProfile?: Profile | null; // Add receiverProfile
 }
 
 const Dashboard = () => {
@@ -41,7 +43,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchMessagesAndProfiles = async () => {
       if (sessionLoading || !user) {
         setMessagesLoading(false);
         return;
@@ -49,10 +51,10 @@ const Dashboard = () => {
 
       setMessagesLoading(true);
       try {
-        // Fetch latest 3 sent messages, joining with profiles to get receiver's info
+        // Fetch latest 3 sent messages
         const { data: sentData, error: sentError } = await supabase
           .from('messages')
-          .select('*, profiles!messages_receiver_id_fkey(username, email)') // Join with profiles table
+          .select('*') // Select all columns from messages
           .eq('sender_id', user.id)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -60,14 +62,12 @@ const Dashboard = () => {
         if (sentError) {
           console.error('Error fetching sent messages:', sentError.message);
           toast.error('Failed to load sent messages.');
-        } else {
-          setSentMessages(sentData || []);
         }
 
-        // Fetch latest 3 received messages, joining with profiles to get sender's info
+        // Fetch latest 3 received messages
         const { data: receivedData, error: receivedError } = await supabase
           .from('messages')
-          .select('*, profiles!messages_sender_id_fkey(username, email)') // Join with profiles table
+          .select('*') // Select all columns from messages
           .eq('receiver_id', user.id)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -75,9 +75,43 @@ const Dashboard = () => {
         if (receivedError) {
           console.error('Error fetching received messages:', receivedError.message);
           toast.error('Failed to load received messages.');
-        } else {
-          setReceivedMessages(receivedData || []);
         }
+
+        const allRelatedUserIds = new Set<string>();
+        sentData?.forEach(msg => allRelatedUserIds.add(msg.receiver_id));
+        receivedData?.forEach(msg => allRelatedUserIds.add(msg.sender_id));
+        allRelatedUserIds.add(user.id); // Include current user's ID for their own profile if needed
+
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', Array.from(allRelatedUserIds));
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError.message);
+          toast.error('Failed to load associated profiles.');
+          setMessagesLoading(false);
+          return;
+        }
+
+        const profilesMap = new Map<string, Profile>();
+        profilesData?.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+        });
+
+        const combinedSentMessages = sentData?.map(msg => ({
+          ...msg,
+          receiverProfile: profilesMap.get(msg.receiver_id) || null,
+        })) || [];
+
+        const combinedReceivedMessages = receivedData?.map(msg => ({
+          ...msg,
+          senderProfile: profilesMap.get(msg.sender_id) || null,
+        })) || [];
+
+        setSentMessages(combinedSentMessages);
+        setReceivedMessages(combinedReceivedMessages);
+
       } catch (error) {
         console.error('Unexpected error fetching messages:', error);
         toast.error('An unexpected error occurred while loading messages.');
@@ -86,7 +120,7 @@ const Dashboard = () => {
       }
     };
 
-    fetchMessages();
+    fetchMessagesAndProfiles();
   }, [user, sessionLoading]);
 
   if (sessionLoading) {
@@ -173,7 +207,7 @@ const Dashboard = () => {
                     >
                       <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        To: {message.profiles?.username || message.profiles?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}
+                        To: {message.receiverProfile?.username || message.receiverProfile?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}
                       </p>
                     </li>
                   ))}
@@ -201,7 +235,7 @@ const Dashboard = () => {
                     >
                       <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        From: {message.profiles?.username || message.profiles?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}
+                        From: {message.senderProfile?.username || message.senderProfile?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}
                       </p>
                     </li>
                   ))}

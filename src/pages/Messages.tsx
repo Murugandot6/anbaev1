@@ -8,6 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { ArrowLeft, Mail, Send } from 'lucide-react';
 
+interface Profile {
+  id: string; // Add id to profile interface
+  username: string | null;
+  email: string | null;
+}
+
 interface Message {
   id: string;
   sender_id: string;
@@ -16,6 +22,8 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
+  senderProfile?: Profile | null; // Add senderProfile
+  receiverProfile?: Profile | null; // Add receiverProfile
 }
 
 const Messages = () => {
@@ -26,7 +34,7 @@ const Messages = () => {
   const [messagesLoading, setMessagesLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAllMessages = async () => {
+    const fetchAllMessagesAndProfiles = async () => {
       if (sessionLoading || !user) {
         setMessagesLoading(false);
         return;
@@ -37,30 +45,62 @@ const Messages = () => {
         // Fetch all sent messages
         const { data: sentData, error: sentError } = await supabase
           .from('messages')
-          .select('*')
+          .select('*') // Select all columns from messages
           .eq('sender_id', user.id)
           .order('created_at', { ascending: false });
 
         if (sentError) {
           console.error('Error fetching sent messages:', sentError.message);
           toast.error('Failed to load sent messages.');
-        } else {
-          setSentMessages(sentData || []);
         }
 
         // Fetch all received messages
         const { data: receivedData, error: receivedError } = await supabase
           .from('messages')
-          .select('*')
+          .select('*') // Select all columns from messages
           .eq('receiver_id', user.id)
           .order('created_at', { ascending: false });
 
         if (receivedError) {
           console.error('Error fetching received messages:', receivedError.message);
           toast.error('Failed to load received messages.');
-        } else {
-          setReceivedMessages(receivedData || []);
         }
+
+        const allRelatedUserIds = new Set<string>();
+        sentData?.forEach(msg => allRelatedUserIds.add(msg.receiver_id));
+        receivedData?.forEach(msg => allRelatedUserIds.add(msg.sender_id));
+        allRelatedUserIds.add(user.id); // Include current user's ID for their own profile if needed
+
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', Array.from(allRelatedUserIds));
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError.message);
+          toast.error('Failed to load associated profiles.');
+          setMessagesLoading(false);
+          return;
+        }
+
+        const profilesMap = new Map<string, Profile>();
+        profilesData?.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+        });
+
+        const combinedSentMessages = sentData?.map(msg => ({
+          ...msg,
+          receiverProfile: profilesMap.get(msg.receiver_id) || null,
+        })) || [];
+
+        const combinedReceivedMessages = receivedData?.map(msg => ({
+          ...msg,
+          senderProfile: profilesMap.get(msg.sender_id) || null,
+        })) || [];
+
+        setSentMessages(combinedSentMessages);
+        setReceivedMessages(combinedReceivedMessages);
+
       } catch (error) {
         console.error('Unexpected error fetching messages:', error);
         toast.error('An unexpected error occurred while loading messages.');
@@ -69,7 +109,7 @@ const Messages = () => {
       }
     };
 
-    fetchAllMessages();
+    fetchAllMessagesAndProfiles();
   }, [user, sessionLoading]);
 
   if (sessionLoading) {
@@ -119,7 +159,7 @@ const Messages = () => {
                     {receivedMessages.map((message) => (
                       <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
                         <p className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Subject: {message.subject}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">From: {message.sender_id} | Received: {new Date(message.created_at).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">From: {message.senderProfile?.username || message.senderProfile?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}</p>
                         <p className="text-base">{message.content}</p>
                       </li>
                     ))}
@@ -143,7 +183,7 @@ const Messages = () => {
                     {sentMessages.map((message) => (
                       <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
                         <p className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Subject: {message.subject}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">To: {message.receiver_id} | Sent: {new Date(message.created_at).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">To: {message.receiverProfile?.username || message.receiverProfile?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}</p>
                         <p className="text-base">{message.content}</p>
                       </li>
                     ))}
