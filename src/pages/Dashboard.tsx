@@ -2,7 +2,7 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Import Link
 import { LogOut, Settings, MessageSquare, Inbox } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -71,9 +71,11 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Button size="lg" className="bg-pink-600 hover:bg-pink-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700 py-6 text-lg">
-            <MessageSquare className="w-6 h-6 mr-3" /> Send New Message
-          </Button>
+          <Link to="/send-message" className="w-full"> {/* Wrap Button with Link */}
+            <Button size="lg" className="w-full bg-pink-600 hover:bg-pink-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700 py-6 text-lg">
+              <MessageSquare className="w-6 h-6 mr-3" /> Send New Message
+            </Button>
+          </Link>
           <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 py-6 text-lg">
             <Inbox className="w-6 h-6 mr-3" /> View Inbox & Outbox
           </Button>

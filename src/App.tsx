@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login"; // Import Login page
 import Register from "./pages/Register"; // Import Register page
 import Dashboard from "./pages/Dashboard"; // Import Dashboard page
+import SendMessage from "./pages/SendMessage"; // Import SendMessage page
 import { SessionContextProvider } from "./contexts/SessionContext"; // Import SessionContextProvider
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/login" element={<Login />} /> {/* Add Login route */}
             <Route path="/register" element={<Register />} /> {/* Add Register route */}
             <Route path="/dashboard" element={<Dashboard />} /> {/* Add Dashboard route */}
+            <Route path="/send-message" element={<SendMessage />} /> {/* Add SendMessage route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
