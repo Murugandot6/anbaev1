@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, Send, MessageSquare, Tag, Zap, Smile } from 'lucide-react';
+import { ArrowLeft, Mail, Send, MessageSquare, Tag, Zap, Smile, User } from 'lucide-react'; // Added User here
 
 interface Profile {
   id: string;
