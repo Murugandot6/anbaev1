@@ -14,18 +14,20 @@ import { useSession } from '@/contexts/SessionContext';
 const formSchema = z.object({
   username: z.string().min(2, { message: 'Nickname must be at least 2 characters.' }).optional().or(z.literal('')),
   partner_email: z.string().email({ message: 'Please enter a valid partner email address.' }).optional().or(z.literal('')),
+  partner_nickname: z.string().optional().or(z.literal('')), // New field for partner's nickname alias
 });
 
 const EditProfile = () => {
   const navigate = useNavigate();
   const { user, loading: sessionLoading } = useSession();
-  const [profileExists, setProfileExists] = useState(false); // New state to track if profile exists
+  const [profileExists, setProfileExists] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: '',
       partner_email: '',
+      partner_nickname: '', // Initialize new field
     },
   });
 
@@ -37,11 +39,11 @@ const EditProfile = () => {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, partner_email')
+        .select('username, partner_email, partner_nickname') // Select partner_nickname
         .eq('id', user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no row found, which is not a critical error here
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error.message);
         toast.error('Failed to load profile data.');
         setProfileExists(false);
@@ -49,10 +51,10 @@ const EditProfile = () => {
         form.reset({
           username: data.username || '',
           partner_email: data.partner_email || '',
+          partner_nickname: data.partner_nickname || '', // Set value for new field
         });
         setProfileExists(true);
       } else {
-        // No profile found, initialize with empty values (defaultValues)
         setProfileExists(false);
       }
     };
@@ -69,25 +71,25 @@ const EditProfile = () => {
     try {
       let dbError = null;
 
+      const updateData = {
+        username: values.username || null,
+        partner_email: values.partner_email || null,
+        partner_nickname: values.partner_nickname || null, // Include partner_nickname
+      };
+
       if (profileExists) {
-        // If profile exists, update it
         const { error } = await supabase
           .from('profiles')
-          .update({
-            username: values.username || null,
-            partner_email: values.partner_email || null,
-          })
+          .update(updateData)
           .eq('id', user.id);
         dbError = error;
       } else {
-        // If profile does not exist, insert it
         const { error } = await supabase
           .from('profiles')
           .insert({
             id: user.id,
-            username: values.username || null,
-            email: user.email, // Assuming email is always available from auth.user
-            partner_email: values.partner_email || null,
+            email: user.email,
+            ...updateData,
           });
         dbError = error;
       }
@@ -101,6 +103,7 @@ const EditProfile = () => {
           data: {
             nickname: values.username || null,
             partner_email: values.partner_email || null,
+            partner_nickname: values.partner_nickname || null, // Update user_metadata
           },
         });
 
@@ -146,7 +149,7 @@ const EditProfile = () => {
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2"><User className="w-4 h-4" /> Nickname</FormLabel>
+                  <FormLabel className="flex items-center gap-2"><User className="w-4 h-4" /> Your Nickname</FormLabel>
                   <FormControl>
                     <Input placeholder="Your Nickname" {...field} />
                   </FormControl>
@@ -162,6 +165,19 @@ const EditProfile = () => {
                   <FormLabel className="flex items-center gap-2"><Users className="w-4 h-4" /> Partner's Email</FormLabel>
                   <FormControl>
                     <Input placeholder="partner@example.com" {...field} type="email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="partner_nickname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><User className="w-4 h-4" /> Partner's Alias (for your view)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Sweetheart, My Love" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
