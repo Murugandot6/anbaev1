@@ -1,25 +1,87 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom'; // Import Link
+import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Settings, MessageSquare, Inbox } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+
+interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  subject: string;
+  content: string;
+  created_at: string;
+  is_read: boolean;
+}
 
 const Dashboard = () => {
-  const { user, loading } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
+  const [sentMessages, setSentMessages] = useState<Message[]>([]);
+  const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Logout error:', error.message);
+      toast.error('Failed to log out.');
     } else {
       navigate('/login');
     }
   };
 
-  if (loading) {
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (sessionLoading || !user) {
+        setMessagesLoading(false);
+        return;
+      }
+
+      setMessagesLoading(true);
+      try {
+        // Fetch sent messages
+        const { data: sentData, error: sentError } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('sender_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (sentError) {
+          console.error('Error fetching sent messages:', sentError.message);
+          toast.error('Failed to load sent messages.');
+        } else {
+          setSentMessages(sentData || []);
+        }
+
+        // Fetch received messages
+        const { data: receivedData, error: receivedError } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('receiver_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (receivedError) {
+          console.error('Error fetching received messages:', receivedError.message);
+          toast.error('Failed to load received messages.');
+        } else {
+          setReceivedMessages(receivedData || []);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching messages:', error);
+        toast.error('An unexpected error occurred while loading messages.');
+      } finally {
+        setMessagesLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [user, sessionLoading]);
+
+  if (sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 text-foreground">
         <p className="text-xl">Loading user session...</p>
@@ -28,8 +90,6 @@ const Dashboard = () => {
   }
 
   if (!user) {
-    // This case should ideally be handled by the SessionContext redirect,
-    // but as a fallback:
     navigate('/login');
     return null;
   }
@@ -40,7 +100,7 @@ const Dashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Welcome, {user.user_metadata.nickname || user.email}!</h1>
           <div className="flex space-x-4">
-            <Link to="/edit-profile"> {/* Wrap Button with Link */}
+            <Link to="/edit-profile">
               <Button variant="outline" className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <Settings className="w-5 h-5 mr-2" /> Edit Profile
               </Button>
@@ -73,7 +133,7 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Link to="/send-message" className="w-full"> {/* Wrap Button with Link */}
+          <Link to="/send-message" className="w-full">
             <Button size="lg" className="w-full bg-pink-600 hover:bg-pink-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700 py-6 text-lg">
               <MessageSquare className="w-6 h-6 mr-3" /> Send New Message
             </Button>
@@ -87,18 +147,44 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-white dark:bg-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Outbox (0)</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Outbox ({sentMessages.length})</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground">
-              <p>No messages sent yet.</p>
+              {messagesLoading ? (
+                <p>Loading sent messages...</p>
+              ) : sentMessages.length > 0 ? (
+                <ul className="space-y-2">
+                  {sentMessages.map((message) => (
+                    <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-2 last:border-b-0">
+                      <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Sent: {new Date(message.created_at).toLocaleString()}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No messages sent yet.</p>
+              )}
             </CardContent>
           </Card>
           <Card className="bg-white dark:bg-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Inbox (0)</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Inbox ({receivedMessages.length})</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground">
-              <p>No messages received yet.</p>
+              {messagesLoading ? (
+                <p>Loading received messages...</p>
+              ) : receivedMessages.length > 0 ? (
+                <ul className="space-y-2">
+                  {receivedMessages.map((message) => (
+                    <li key={message.id} className="border-b border-gray-20:0 dark:border-gray-700 pb-2 last:border-b-0">
+                      <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Received: {new Date(message.created_at).toLocaleString()}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No messages received yet.</p>
+              )}
             </CardContent>
           </Card>
         </div>
