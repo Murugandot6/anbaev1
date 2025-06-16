@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, Send } from 'lucide-react';
+import { ArrowLeft, Mail, Send, MessageSquare, Tag, Zap, Smile } from 'lucide-react';
 
 interface Profile {
   id: string; // Add id to profile interface
@@ -22,6 +22,9 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
+  message_type: string; // Add message_type
+  priority: string;     // Add priority
+  mood: string;         // Add mood
   senderProfile?: Profile | null; // Add senderProfile
   receiverProfile?: Profile | null; // Add receiverProfile
 }
@@ -158,9 +161,20 @@ const Messages = () => {
                   <ul className="space-y-4">
                     {receivedMessages.map((message) => (
                       <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
-                        <p className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Subject: {message.subject}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">From: {message.senderProfile?.username || message.senderProfile?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}</p>
-                        <p className="text-base">{message.content}</p>
+                        <Link to={`/messages/${message.id}`} className="block hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md transition-colors">
+                          <p className="font-semibold text-lg text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5" /> Subject: {message.subject}
+                            {message.is_read ? null : <span className="ml-2 text-xs font-bold text-blue-600 dark:text-blue-400">NEW!</span>}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
+                            <User className="w-4 h-4" /> From: {message.senderProfile?.username || message.senderProfile?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> {message.message_type}</span>
+                            <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {message.priority}</span>
+                            <span className="flex items-center gap-1"><Smile className="w-3 h-3" /> {message.mood}</span>
+                          </div>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -182,9 +196,19 @@ const Messages = () => {
                   <ul className="space-y-4">
                     {sentMessages.map((message) => (
                       <li key={message.id} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
-                        <p className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Subject: {message.subject}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">To: {message.receiverProfile?.username || message.receiverProfile?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}</p>
-                        <p className="text-base">{message.content}</p>
+                        <Link to={`/messages/${message.id}`} className="block hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md transition-colors">
+                          <p className="font-semibold text-lg text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5" /> Subject: {message.subject}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
+                            <Mail className="w-4 h-4" /> To: {message.receiverProfile?.username || message.receiverProfile?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> {message.message_type}</span>
+                            <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {message.priority}</span>
+                            <span className="flex items-center gap-1"><Smile className="w-3 h-3" /> {message.mood}</span>
+                          </div>
+                        </Link>
                       </li>
                     ))}
                   </ul>

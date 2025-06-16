@@ -10,7 +10,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SendMessage from "./pages/SendMessage";
 import EditProfile from "./pages/EditProfile";
-import Messages from "./pages/Messages"; // Import the new Messages page
+import Messages from "./pages/Messages";
+import ViewMessage from "./pages/ViewMessage"; // Import the new ViewMessage page
 import { SessionContextProvider } from "./contexts/SessionContext";
 
 const queryClient = new QueryClient();
@@ -20,7 +21,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/anbaev1"> {/* Added basename prop here */}
+      <BrowserRouter basename="/anbaev1">
         <SessionContextProvider>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -29,7 +30,8 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/send-message" element={<SendMessage />} />
             <Route path="/edit-profile" element={<EditProfile />} />
-            <Route path="/messages" element={<Messages />} /> {/* Add the new Messages route */}
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/:id" element={<ViewMessage />} /> {/* Add the new ViewMessage route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
