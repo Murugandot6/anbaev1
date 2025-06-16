@@ -45,8 +45,18 @@ const Index = () => {
         </p>
       </div>
 
-      {/* Removed Login/Register buttons from the main homepage */}
-      {/* Users can still navigate to /login or /register directly */}
+      <div className="flex flex-col sm:flex-row gap-4 animate-fade-in delay-600"> {/* Added fade-in animation with delay */}
+        <Link to="/login">
+          <Button className="w-full sm:w-auto bg-pink-600 hover:bg-pink-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700">
+            Login
+          </Button>
+        </Link>
+        <Link to="/register">
+          <Button variant="outline" className="w-full sm:w-auto text-pink-600 border-pink-600 hover:bg-pink-50 dark:text-purple-400 dark:border-purple-400 dark:hover:bg-purple-900">
+            Register
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 };
