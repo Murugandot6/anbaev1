@@ -45,30 +45,27 @@ const SendMessage = () => {
       console.log('Attempting to fetch partner with email from user metadata:', currentUsersPartnerEmail);
 
       if (currentUsersPartnerEmail) {
+        // Removed .single() to see the raw response
         const { data, error } = await supabase
           .from('profiles')
           .select('id, username, email')
-          .eq('email', currentUsersPartnerEmail)
-          .single();
+          .eq('email', currentUsersPartnerEmail);
 
         if (error) {
           console.error('Error fetching partner profile from Supabase:', error.message);
           console.log('Supabase query error details:', error);
-          // Check for specific error code for no rows found (PGRST116)
-          if (error.code === 'PGRST116') {
-            toast.error('Partner profile not found for the specified email. Please ensure your partner has registered.');
-          } else {
-            toast.error('An error occurred while fetching partner profile.');
-          }
+          toast.error('An error occurred while fetching partner profile.');
           setPartnerId(null);
           setPartnerNickname(null);
-        } else if (data) {
-          console.log('Partner profile found:', data);
-          setPartnerId(data.id);
-          setPartnerNickname(data.username);
+        } else if (data && data.length > 0) {
+          // If data is an array and has elements, take the first one
+          const partnerData = data[0];
+          console.log('Partner profile found:', partnerData);
+          setPartnerId(partnerData.id);
+          setPartnerNickname(partnerData.username);
         } else {
-          // This case should ideally not be reached if error.code === 'PGRST116' is handled
           console.log('No partner profile data returned for email:', currentUsersPartnerEmail);
+          toast.error('Partner profile not found for the specified email. Please ensure your partner has registered.');
           setPartnerId(null);
           setPartnerNickname(null);
         }
