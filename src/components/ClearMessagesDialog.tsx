@@ -1,4 +1,3 @@
-/** @jsxImportSource React */
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
@@ -244,7 +243,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
   };
 
   return (
-    <React.Fragment>
+    <>
       {/* Button to trigger sending a clear request */}
       <AlertDialog open={isSendRequestOpen} onOpenChange={setIsSendRequestOpen}>
         <AlertDialogTrigger asChild>
@@ -342,7 +341,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
           </AlertDialogContent>
         </AlertDialog>
       )}
-    </React.Fragment>
+    </>
   );
 };
 
