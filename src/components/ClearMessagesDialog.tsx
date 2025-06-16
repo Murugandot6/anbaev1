@@ -101,11 +101,12 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
         const latestOutgoing = outgoingRequests[0] as ClearRequest;
         setPendingOutgoingRequest(latestOutgoing);
         if (latestOutgoing.status === 'accepted') {
-          setIsSenderReconfirmOpen(true); // Open reconfirmation for sender
+          setIsSenderReconfirmOpen(true);
         } else if (latestOutgoing.status === 'denied') {
-          toast.info(`Your partner denied the clear request: "${latestOutgoing.receiver_response_message || 'No message provided.'}"`);
-          // Optionally, clear the denied request from view after user acknowledges
-          // For now, just a toast.
+            // Only show toast if the dialog is not already open for this request
+            if (!isSenderReconfirmOpen) {
+                toast.info(`Your partner denied the clear request: "${latestOutgoing.receiver_response_message || 'No message provided.'}"`);
+            }
         }
       }
     };
@@ -147,7 +148,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId, fetchSenderProfile]);
+  }, [currentUserId, fetchSenderProfile, isSenderReconfirmOpen]);
 
 
   const handleSendRequest = async () => {
@@ -256,7 +257,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
             <AlertDialogDescription>
               This will send a request to {partnerNickname || 'your partner'} to clear all messages. They will need to approve it.
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </AlertDialogDescription>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="senderMessage">Optional Message to Partner</Label>
