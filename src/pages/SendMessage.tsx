@@ -35,24 +35,31 @@ const SendMessage = () => {
   useEffect(() => {
     const fetchPartnerDetails = async () => {
       if (sessionLoading || !user) {
+        console.log('Session loading or user not available. Skipping partner fetch.');
         setFetchingPartner(false);
         return;
       }
 
+      console.log('Current user object:', user); // Log the full user object
       const currentUsersPartnerEmail = user?.user_metadata?.partner_email;
-      console.log('Current user\'s partner_email from metadata:', currentUsersPartnerEmail);
+      console.log('Attempting to fetch partner with email from user metadata:', currentUsersPartnerEmail);
 
       if (currentUsersPartnerEmail) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, username, email') // Fetch email as well for debugging
+          .select('id, username, email')
           .eq('email', currentUsersPartnerEmail)
           .single();
 
         if (error) {
-          console.error('Error fetching partner profile:', error.message);
+          console.error('Error fetching partner profile from Supabase:', error.message);
           console.log('Supabase query error details:', error);
-          toast.error('Could not find partner profile. Please ensure your partner has registered.');
+          // Check for specific error code for no rows found (PGRST116)
+          if (error.code === 'PGRST116') {
+            toast.error('Partner profile not found for the specified email. Please ensure your partner has registered.');
+          } else {
+            toast.error('An error occurred while fetching partner profile.');
+          }
           setPartnerId(null);
           setPartnerNickname(null);
         } else if (data) {
@@ -60,12 +67,13 @@ const SendMessage = () => {
           setPartnerId(data.id);
           setPartnerNickname(data.username);
         } else {
-          console.log('No partner profile found for email:', currentUsersPartnerEmail);
+          // This case should ideally not be reached if error.code === 'PGRST116' is handled
+          console.log('No partner profile data returned for email:', currentUsersPartnerEmail);
           setPartnerId(null);
           setPartnerNickname(null);
         }
       } else {
-        console.log('Current user does not have a partner email set in metadata.');
+        console.log('Current user does not have a partner email set in metadata. Displaying message to update profile.');
         toast.error('Your profile does not have a partner email set. Please update your profile.');
       }
       setFetchingPartner(false);
