@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Heart, Send, Mail, MessageSquare } from 'lucide-react';
+import { Heart, Send, Mail, MessageSquare, Users } from 'lucide-react'; // Added Users here
 import { toast } from 'sonner';
 import { useSession } from '@/contexts/SessionContext';
 
