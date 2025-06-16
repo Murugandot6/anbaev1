@@ -70,7 +70,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
       // Fetch incoming pending requests
       const { data: incomingRequests, error: incomingError } = await supabase
         .from('clear_requests')
-        .select('*, sender_id(username, email)') // Fetch sender profile
+        .select('*') // Select all columns from messages, no direct join here
         .eq('receiver_id', currentUserId)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
@@ -79,12 +79,9 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
       if (incomingError) {
         console.error('Error fetching incoming clear requests:', incomingError.message);
       } else if (incomingRequests && incomingRequests.length > 0) {
-        // Supabase returns joined data as an array for the foreign key relationship
-        const requestWithProfile = {
-          ...incomingRequests[0],
-          senderProfile: incomingRequests[0].sender_id, // Assign the joined profile data
-        } as ClearRequest;
-        setPendingIncomingRequest(requestWithProfile);
+        const newRequest = incomingRequests[0] as ClearRequest;
+        const senderProfile = await fetchSenderProfile(newRequest.sender_id);
+        setPendingIncomingRequest({ ...newRequest, senderProfile });
         setIsPartnerResponseOpen(true); // Open dialog if there's a pending request
       }
 
