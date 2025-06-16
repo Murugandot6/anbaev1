@@ -31,6 +31,17 @@ const EditProfile = () => {
     },
   });
 
+  // Custom validation for partner_email
+  useEffect(() => {
+    if (user?.email) {
+      form.setError('partner_email', {
+        type: 'manual',
+        message: "Your partner's email cannot be the same as your own email.",
+      }, { shouldFocus: true });
+      form.clearErrors('partner_email'); // Clear error if it's not the same
+    }
+  }, [user?.email, form.watch('partner_email')]); // Re-run when user email or partner_email changes
+
   useEffect(() => {
     const fetchProfile = async () => {
       if (sessionLoading || !user) {
@@ -65,6 +76,15 @@ const EditProfile = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) {
       toast.error('You must be logged in to edit your profile.');
+      return;
+    }
+
+    // Perform the custom validation before submitting
+    if (user.email && values.partner_email && user.email === values.partner_email) {
+      form.setError('partner_email', {
+        type: 'manual',
+        message: "Your partner's email cannot be the same as your own email.",
+      });
       return;
     }
 

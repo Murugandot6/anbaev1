@@ -15,6 +15,9 @@ const formSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   nickname: z.string().min(2, { message: 'Nickname must be at least 2 characters.' }),
   partner_email: z.string().email({ message: 'Please enter a valid partner email address.' }),
+}).refine((data) => data.email !== data.partner_email, {
+  message: "Your partner's email cannot be the same as your own email.",
+  path: ["partner_email"],
 });
 
 const Register = () => {
