@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Mail, Send, MessageSquare, Tag, Zap, Smile } from 'lucide-react';
 
 interface Profile {
-  id: string; // Add id to profile interface
+  id: string;
   username: string | null;
   email: string | null;
 }
@@ -22,11 +22,11 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
-  message_type: string; // Add message_type
-  priority: string;     // Add priority
-  mood: string;         // Add mood
-  senderProfile?: Profile | null; // Add senderProfile
-  receiverProfile?: Profile | null; // Add receiverProfile
+  message_type: string;
+  priority: string;
+  mood: string;
+  senderProfile?: Profile | null;
+  receiverProfile?: Profile | null;
 }
 
 const Messages = () => {
@@ -35,6 +35,28 @@ const Messages = () => {
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
+  const [profilesMap, setProfilesMap] = useState<Map<string, Profile>>(new Map());
+
+  // Helper to fetch a single profile if not already in map
+  const fetchProfile = async (profileId: string) => {
+    if (profilesMap.has(profileId)) {
+      return profilesMap.get(profileId);
+    }
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, email')
+      .eq('id', profileId)
+      .single();
+    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error fetching profile:', error.message);
+      return null;
+    }
+    if (data) {
+      setProfilesMap(prev => new Map(prev).set(profileId, data));
+      return data;
+    }
+    return null;
+  };
 
   useEffect(() => {
     const fetchAllMessagesAndProfiles = async () => {
@@ -48,7 +70,7 @@ const Messages = () => {
         // Fetch all sent messages
         const { data: sentData, error: sentError } = await supabase
           .from('messages')
-          .select('*') // Select all columns from messages
+          .select('*')
           .eq('sender_id', user.id)
           .order('created_at', { ascending: false });
 
@@ -60,7 +82,7 @@ const Messages = () => {
         // Fetch all received messages
         const { data: receivedData, error: receivedError } = await supabase
           .from('messages')
-          .select('*') // Select all columns from messages
+          .select('*')
           .eq('receiver_id', user.id)
           .order('created_at', { ascending: false });
 
@@ -72,7 +94,7 @@ const Messages = () => {
         const allRelatedUserIds = new Set<string>();
         sentData?.forEach(msg => allRelatedUserIds.add(msg.receiver_id));
         receivedData?.forEach(msg => allRelatedUserIds.add(msg.sender_id));
-        allRelatedUserIds.add(user.id); // Include current user's ID for their own profile if needed
+        allRelatedUserIds.add(user.id);
 
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
@@ -86,19 +108,20 @@ const Messages = () => {
           return;
         }
 
-        const profilesMap = new Map<string, Profile>();
+        const initialProfilesMap = new Map<string, Profile>();
         profilesData?.forEach(profile => {
-          profilesMap.set(profile.id, profile);
+          initialProfilesMap.set(profile.id, profile);
         });
+        setProfilesMap(initialProfilesMap);
 
         const combinedSentMessages = sentData?.map(msg => ({
           ...msg,
-          receiverProfile: profilesMap.get(msg.receiver_id) || null,
+          receiverProfile: initialProfilesMap.get(msg.receiver_id) || null,
         })) || [];
 
         const combinedReceivedMessages = receivedData?.map(msg => ({
           ...msg,
-          senderProfile: profilesMap.get(msg.sender_id) || null,
+          senderProfile: initialProfilesMap.get(msg.sender_id) || null,
         })) || [];
 
         setSentMessages(combinedSentMessages);
@@ -113,7 +136,56 @@ const Messages = () => {
     };
 
     fetchAllMessagesAndProfiles();
-  }, [user, sessionLoading]);
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('messages_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for INSERT and UPDATE
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${user?.id}.or.receiver_id=eq.${user?.id}` // Only messages relevant to current user
+        },
+        async (payload) => {
+          console.log('Realtime message payload:', payload);
+          const newMessage = payload.new as Message;
+
+          if (payload.eventType === 'INSERT') {
+            // Fetch sender/receiver profiles for the new message if not already in map
+            const senderProfile = await fetchProfile(newMessage.sender_id);
+            const receiverProfile = await fetchProfile(newMessage.receiver_id);
+
+            const messageWithProfiles = {
+              ...newMessage,
+              senderProfile,
+              receiverProfile,
+            };
+
+            if (newMessage.receiver_id === user?.id) {
+              setReceivedMessages(prev => [messageWithProfiles, ...prev]);
+              toast.info(`New message from ${senderProfile?.username || senderProfile?.email || 'Your Partner'}!`);
+            } else if (newMessage.sender_id === user?.id) {
+              setSentMessages(prev => [messageWithProfiles, ...prev]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            // Update existing message in state
+            setReceivedMessages(prev =>
+              prev.map(msg => (msg.id === newMessage.id ? { ...msg, ...newMessage } : msg))
+            );
+            setSentMessages(prev =>
+              prev.map(msg => (msg.id === newMessage.id ? { ...msg, ...newMessage } : msg))
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, sessionLoading, profilesMap]); // Added profilesMap to dependencies to ensure fetchProfile works correctly
 
   if (sessionLoading) {
     return (
