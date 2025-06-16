@@ -244,7 +244,103 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
 
   return (
     <div>
-      <p>Clear Messages Dialog Placeholder</p>
+      {/* Button to trigger sending a clear request */}
+      <AlertDialog open={isSendRequestOpen} onOpenChange={setIsSendRequestOpen}>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800">
+            <MessageSquareX className="w-5 h-5 mr-2" /> Clear All Messages
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Clear All Messages Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a request to {partnerNickname || 'your partner'} to clear all messages. They will need to approve it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="senderMessage">Optional Message to Partner</Label>
+              <Textarea
+                id="senderMessage"
+                placeholder="e.g., 'Let's start fresh!'"
+                value={senderMessage}
+                onChange={(e) => setSenderMessage(e.target.value)}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSendRequest}>Send Request</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog for partner to respond to incoming request */}
+      {pendingIncomingRequest && (
+        <AlertDialog open={isPartnerResponseOpen} onOpenChange={setIsPartnerResponseOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Info className="w-6 h-6 text-blue-500" /> Clear Messages Request from {pendingIncomingRequest.senderProfile?.username || pendingIncomingRequest.senderProfile?.email || 'Your Partner'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Your partner wants to clear all messages.
+                {pendingIncomingRequest.sender_message && (
+                  <p className="mt-2 italic">"Sender's message: {pendingIncomingRequest.sender_message}"</p>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="receiverResponseMessage">Optional Response Message</Label>
+                <Textarea
+                  id="receiverResponseMessage"
+                  placeholder="e.g., 'Sure, let's do it!'"
+                  value={receiverResponseMessage}
+                  onChange={(e) => setReceiverResponseMessage(e.target.value)}
+                />
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <Button variant="outline" onClick={() => handlePartnerResponse('denied')}>
+                <XCircle className="w-4 h-4 mr-2" /> Deny
+              </Button>
+              <Button onClick={() => handlePartnerResponse('accepted')}>
+                <CheckCircle className="w-4 h-4 mr-2" /> Accept
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Dialog for sender to reconfirm after partner accepts */}
+      {pendingOutgoingRequest && pendingOutgoingRequest.status === 'accepted' && (
+        <AlertDialog open={isSenderReconfirmOpen} onOpenChange={setIsSenderReconfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <CheckCircle className="w-6 h-6 text-green-500" /> Partner Accepted Your Request!
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription>
+              Your partner has accepted your request to clear all messages.
+              {pendingOutgoingRequest.receiver_response_message && (
+                <p className="mt-2 italic">"Partner's message: {pendingOutgoingRequest.receiver_response_message}"</p>
+              )}
+              <p className="mt-4 font-semibold text-red-600 dark:text-red-400">
+                Are you sure you want to proceed with clearing ALL messages? This action cannot be undone.
+              </p>
+            </AlertDialogDescription>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingOutgoingRequest(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleFinalClearConfirmation}>
+                Yes, Clear All Messages
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };
