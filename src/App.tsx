@@ -20,7 +20,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/anbaev1"> {/* Added basename prop here */}
         <SessionContextProvider>
           <Routes>
             <Route path="/" element={<Index />} />
