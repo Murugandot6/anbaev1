@@ -36,9 +36,10 @@ interface ClearMessagesDialogProps {
   partnerId: string | null;
   partnerNickname: string | null;
   currentUserId: string | null;
+  onMessagesCleared?: () => void; // New prop for callback
 }
 
-const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, partnerNickname, currentUserId }) => {
+const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, partnerNickname, currentUserId, onMessagesCleared }) => {
   const { user } = useSession();
   const [isSendRequestOpen, setIsSendRequestOpen] = useState(false);
   const [isPartnerResponseOpen, setIsPartnerResponseOpen] = useState(false);
@@ -152,6 +153,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
   const handleSendRequest = async () => {
     if (!user || !partnerId) {
       toast.error('User or partner not identified.');
+      console.log('Partner ID received by dialog:', partnerId); // Log partnerId here
       return;
     }
 
@@ -228,7 +230,7 @@ const ClearMessagesDialog: React.FC<ClearMessagesDialogProps> = ({ partnerId, pa
         toast.success('All messages cleared successfully!');
         setIsSenderReconfirmOpen(false);
         setPendingOutgoingRequest(null); // Clear the outgoing request
-        // Optionally, refresh messages on dashboard/messages page
+        onMessagesCleared?.(); // Call the callback to trigger parent refresh
       } else {
         toast.error(data?.message || 'Failed to clear messages.');
         console.error('Clear messages function response:', data);

@@ -37,6 +37,7 @@ const Dashboard = () => {
   const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
   const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null);
   const [fetchingProfiles, setFetchingProfiles] = useState(true);
+  const [refreshMessagesTrigger, setRefreshMessagesTrigger] = useState(0); // New state for refreshing messages
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -176,7 +177,7 @@ const Dashboard = () => {
     };
 
     fetchMessagesAndProfiles();
-  }, [user, sessionLoading]);
+  }, [user, sessionLoading, refreshMessagesTrigger]); // Add refreshMessagesTrigger to dependencies
 
   if (sessionLoading || fetchingProfiles) {
     return (
@@ -210,6 +211,7 @@ const Dashboard = () => {
                 partnerId={partnerProfile?.id || null}
                 partnerNickname={partnerProfile?.username || currentUserProfile?.partner_nickname || null}
                 currentUserId={user.id}
+                onMessagesCleared={() => setRefreshMessagesTrigger(prev => prev + 1)} // Pass the callback
               />
             )}
           </div>

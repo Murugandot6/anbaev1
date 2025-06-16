@@ -66,11 +66,12 @@ serve(async (req) => {
 
     // 3. Delete messages between the sender and receiver (two separate queries)
     console.log('Attempting to delete messages from sender to receiver:', userId, '->', partnerId);
-    const { error: deleteError1 } = await supabaseAdmin
+    const { count: count1, error: deleteError1 } = await supabaseAdmin
       .from('messages')
       .delete()
       .eq('sender_id', userId)
-      .eq('receiver_id', partnerId);
+      .eq('receiver_id', partnerId)
+      .select(); // Add .select() to get count
 
     if (deleteError1) {
       console.error('Error deleting messages (sender to receiver):', deleteError1.message);
@@ -79,14 +80,15 @@ serve(async (req) => {
         status: 500,
       });
     }
-    console.log('Messages from sender to receiver deleted successfully.');
+    console.log(`Deleted ${count1} messages from sender to receiver.`);
 
     console.log('Attempting to delete messages from receiver to sender:', partnerId, '->', userId);
-    const { error: deleteError2 } = await supabaseAdmin
+    const { count: count2, error: deleteError2 } = await supabaseAdmin
       .from('messages')
       .delete()
       .eq('sender_id', partnerId)
-      .eq('receiver_id', userId);
+      .eq('receiver_id', userId)
+      .select(); // Add .select() to get count
 
     if (deleteError2) {
       console.error('Error deleting messages (receiver to sender):', deleteError2.message);
@@ -95,7 +97,7 @@ serve(async (req) => {
         status: 500,
       });
     }
-    console.log('Messages from receiver to sender deleted successfully.');
+    console.log(`Deleted ${count2} messages from receiver to sender.`);
 
     // 4. Update the clear request status to 'completed'
     console.log('Attempting to update clear request status to completed for ID:', clearRequestId);
