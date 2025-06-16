@@ -139,15 +139,15 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 text-foreground p-4 pt-20">
       <div className="w-full max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Welcome, {user.user_metadata.nickname || user.email}!</h1>
-          <div className="flex space-x-4">
-            <Link to="/edit-profile">
-              <Button variant="outline" className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 sm:gap-0">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white text-center sm:text-left">Welcome, {user.user_metadata.nickname || user.email}!</h1>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <Link to="/edit-profile" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <Settings className="w-5 h-5 mr-2" /> Edit Profile
               </Button>
             </Link>
-            <Button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800">
+            <Button onClick={handleLogout} className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800">
               <LogOut className="w-5 h-5 mr-2" /> Logout
             </Button>
           </div>
@@ -156,18 +156,18 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-white dark:bg-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Your Profile</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white text-xl">Your Profile</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-muted-foreground text-base">
               <p><strong>Nickname:</strong> {user.user_metadata.nickname || 'Not set'}</p>
               <p><strong>Email:</strong> {user.email}</p>
             </CardContent>
           </Card>
           <Card className="bg-white dark:bg-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Partner Profile</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white text-xl">Partner Profile</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-muted-foreground text-base">
               <p><strong>Partner Email:</strong> {user.user_metadata.partner_email || 'Not set'}</p>
               <p><strong>Partner Alias:</strong> {user.user_metadata.partner_nickname || 'Not set'}</p> {/* Display partner_nickname */}
             </CardContent>
@@ -187,13 +187,13 @@ const Dashboard = () => {
           </Link>
         </div>
 
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Recent Messages</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Recent Messages</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-white dark:bg-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Outbox ({sentMessages.length})</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white text-xl">Outbox ({sentMessages.length})</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-muted-foreground text-base">
               {messagesLoading ? (
                 <p>Loading sent messages...</p>
               ) : sentMessages.length > 0 ? (
@@ -205,7 +205,7 @@ const Dashboard = () => {
                         index === 0 ? 'bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700 p-2 rounded-md' : ''
                       }`}
                     >
-                      <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white text-lg">Subject: {message.subject}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         To: {message.receiverProfile?.username || message.receiverProfile?.email || 'Unknown Partner'} | Sent: {new Date(message.created_at).toLocaleString()}
                       </p>
@@ -219,9 +219,9 @@ const Dashboard = () => {
           </Card>
           <Card className="bg-white dark:bg-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Inbox ({receivedMessages.length})</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white text-xl">Inbox ({receivedMessages.length})</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-muted-foreground text-base">
               {messagesLoading ? (
                 <p>Loading received messages...</p>
               ) : receivedMessages.length > 0 ? (
@@ -233,7 +233,7 @@ const Dashboard = () => {
                         index === 0 ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700 p-2 rounded-md' : ''
                       }`}
                     >
-                      <p className="font-semibold text-gray-900 dark:text-white">Subject: {message.subject}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white text-lg">Subject: {message.subject}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         From: {message.senderProfile?.username || message.senderProfile?.email || 'Unknown Sender'} | Received: {new Date(message.created_at).toLocaleString()}
                       </p>
