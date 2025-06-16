@@ -43,12 +43,13 @@ const Dashboard = () => {
 
       setMessagesLoading(true);
       try {
-        // Fetch sent messages
+        // Fetch latest 3 sent messages
         const { data: sentData, error: sentError } = await supabase
           .from('messages')
           .select('*')
           .eq('sender_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(3); // Limit to 3 messages
 
         if (sentError) {
           console.error('Error fetching sent messages:', sentError.message);
@@ -57,12 +58,13 @@ const Dashboard = () => {
           setSentMessages(sentData || []);
         }
 
-        // Fetch received messages
+        // Fetch latest 3 received messages
         const { data: receivedData, error: receivedError } = await supabase
           .from('messages')
           .select('*')
           .eq('receiver_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(3); // Limit to 3 messages
 
         if (receivedError) {
           console.error('Error fetching received messages:', receivedError.message);
@@ -138,9 +140,11 @@ const Dashboard = () => {
               <MessageSquare className="w-6 h-6 mr-3" /> Send New Message
             </Button>
           </Link>
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 py-6 text-lg">
-            <Inbox className="w-6 h-6 mr-3" /> View Inbox & Outbox
-          </Button>
+          <Link to="/messages" className="w-full"> {/* Changed to Link to /messages */}
+            <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 py-6 text-lg">
+              <Inbox className="w-6 h-6 mr-3" /> View Inbox & Outbox
+            </Button>
+          </Link>
         </div>
 
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Recent Messages</h2>
