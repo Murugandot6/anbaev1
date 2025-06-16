@@ -1,3 +1,4 @@
+/** @jsxImportSource React */
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
